@@ -11,6 +11,7 @@
     <Company>minhsangdotcom</Company>
     <PackageTags>csharp, nuget, clean architecture, code base</PackageTags>
     <Description>Default stuff for clean architecture template</Description>
+    <RepositoryUrl>https://github.com/minhsangdotcom/The-Template_Shared-kernel</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
