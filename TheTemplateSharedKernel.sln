@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9F985489-D17C-4520-82AD-A704BB053248}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharedKernel", "src\SharedKernel\SharedKernel.csproj", "{B21722F6-1F65-41F5-99D3-10A233DA6F9F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B21722F6-1F65-41F5-99D3-10A233DA6F9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B21722F6-1F65-41F5-99D3-10A233DA6F9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B21722F6-1F65-41F5-99D3-10A233DA6F9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B21722F6-1F65-41F5-99D3-10A233DA6F9F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B21722F6-1F65-41F5-99D3-10A233DA6F9F} = {9F985489-D17C-4520-82AD-A704BB053248}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8EEC0339-446D-4E3E-A34C-389560BFDF73}
+	EndGlobalSection
+EndGlobal
