@@ -1,8 +1,7 @@
 using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
-using Ardalis.GuardClauses;
-using SharedKernel.Guards;
+using SharedKernel.Exceptions;
 
 namespace SharedKernel.Extensions.Reflections;
 
@@ -35,14 +34,11 @@ public static class PropertyInfoExtensions
         foreach (var part in propertyParts)
         {
             // Attempt to find the property information for the current part
-            propertyInfo = Guard.Against.NotFound(
-                $"{type.FullName}.{propertyName}",
+            propertyInfo =
                 type.GetProperty(
                     part.Trim(),
                     BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance
-                ),
-                nameof(propertyName)
-            );
+                ) ?? throw new NotFoundException(part, part);
 
             // Move to the next type in the chain (the type of the current property)
             type = propertyInfo.IsArrayGenericType()
@@ -57,8 +53,6 @@ public static class PropertyInfoExtensions
     public static object? GetNestedPropertyValue(this Type type, string propertyName, object target)
     {
         var propertyParts = propertyName.Trim().Split('.');
-
-        PropertyInfo? propertyInfo = null;
         object? objTarget = target;
 
         foreach (var part in propertyParts)
@@ -68,14 +62,11 @@ public static class PropertyInfoExtensions
                 break;
             }
 
-            propertyInfo = Guard.Against.NotFound(
-                $"{type.FullName}.{propertyName}",
+            PropertyInfo propertyInfo =
                 type.GetProperty(
                     part.Trim(),
                     BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance
-                ),
-                nameof(propertyName)
-            );
+                ) ?? throw new NotFoundException(part, part);
 
             type = propertyInfo.IsArrayGenericType()
                 ? propertyInfo.PropertyType.GetGenericArguments()[0]
@@ -133,14 +124,23 @@ public static class PropertyInfoExtensions
 
     public static PropertyInfo ToPropertyInfo(this Expression expression)
     {
-        LambdaExpression lambda = Guard.Against.ConvertLamda(expression);
+        if (expression == null)
+        {
+            throw new ArgumentException("Expression must be not null.");
+        }
 
-        ExpressionType expressionType = lambda.Body.NodeType;
+        if (expression is not LambdaExpression lamda)
+        {
+            throw new ArgumentException($"Can not parse {expression} to LambdaExpression");
+        }
 
+        LambdaExpression lambdaExpression = lamda;
+        ExpressionType expressionType = lambdaExpression.Body.NodeType;
         MemberExpression? memberExpr = expressionType switch
         {
-            ExpressionType.Convert => ((UnaryExpression)lambda.Body).Operand as MemberExpression,
-            ExpressionType.MemberAccess => lambda.Body as MemberExpression,
+            ExpressionType.Convert => ((UnaryExpression)lambdaExpression.Body).Operand
+                as MemberExpression,
+            ExpressionType.MemberAccess => lambdaExpression.Body as MemberExpression,
             _ => throw new Exception("Expression Type is not support"),
         };
 

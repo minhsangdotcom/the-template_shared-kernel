@@ -1,5 +1,3 @@
-using Ardalis.GuardClauses;
-
 namespace SharedKernel.Common.Messages;
 
 public class MessageDictionary(
@@ -13,10 +11,10 @@ public class MessageDictionary(
     /// <summary>
     /// Origin message
     /// </summary>
-    public string Message { get; set; } = Guard.Against.NullOrEmpty(message, nameof(message));
+    public string Message { get; set; } = message ?? throw new ArgumentException($"{message} ");
 
     public Dictionary<string, string> Translation { get; set; } =
-        Guard.Against.Null(translation, nameof(translation));
+        translation ?? throw new ArgumentException($"{message} ");
 
     /// <summary>
     /// a meaningful negative message instead of using (not + message)

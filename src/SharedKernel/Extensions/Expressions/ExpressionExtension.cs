@@ -1,8 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
-using Ardalis.GuardClauses;
 using SharedKernel.Extensions.Reflections;
-using SharedKernel.Guards;
 
 namespace SharedKernel.Extensions.Expressions;
 
@@ -114,14 +112,25 @@ public static class ExpressionExtension
 
     public static PropertyInfo ToPropertyInfo(this Expression expression)
     {
-        LambdaExpression lambda = Guard.Against.ConvertLamda(expression);
+        if (expression == null)
+        {
+            throw new ArgumentException("Expression must be not null.");
+        }
 
-        ExpressionType expressionType = lambda.Body.NodeType;
+        if (expression is not LambdaExpression lamda)
+        {
+            throw new ArgumentException($"Can not parse {expression} to LambdaExpression");
+        }
+
+        LambdaExpression lambdaExpression = lamda;
+
+        ExpressionType expressionType = lambdaExpression.Body.NodeType;
 
         MemberExpression? memberExpr = expressionType switch
         {
-            ExpressionType.Convert => ((UnaryExpression)lambda.Body).Operand as MemberExpression,
-            ExpressionType.MemberAccess => lambda.Body as MemberExpression,
+            ExpressionType.Convert => ((UnaryExpression)lambdaExpression.Body).Operand
+                as MemberExpression,
+            ExpressionType.MemberAccess => lambdaExpression.Body as MemberExpression,
             _ => throw new Exception("Expression Type is not support"),
         };
 
@@ -130,20 +139,30 @@ public static class ExpressionExtension
 
     public static string ToStringProperty(this Expression expression)
     {
-        LambdaExpression lambda = Guard.Against.ConvertLamda(expression);
+        if (expression == null)
+        {
+            throw new ArgumentException("Expression must be not null.");
+        }
+
+        if (expression is not LambdaExpression lamda)
+        {
+            throw new ArgumentException($"Can not parse {expression} to LambdaExpression");
+        }
+
+        LambdaExpression lambdaExpression = lamda;
 
         var stack = new Stack<string>();
 
-        ExpressionType expressionType = lambda.Body.NodeType;
+        ExpressionType expressionType = lambdaExpression.Body.NodeType;
 
         MemberExpression? memberExpression = true switch
         {
             bool
                 when expressionType == ExpressionType.Convert
                     || expressionType == ExpressionType.ConvertChecked => (
-                lambda.Body as UnaryExpression
+                lambdaExpression.Body as UnaryExpression
             )?.Operand as MemberExpression,
-            bool when expressionType == ExpressionType.MemberAccess => lambda.Body
+            bool when expressionType == ExpressionType.MemberAccess => lambdaExpression.Body
                 as MemberExpression,
             _ => throw new Exception("Expression Type is not support"),
         };
@@ -159,7 +178,15 @@ public static class ExpressionExtension
 
     public static Type GetMemberExpressionType(this MemberExpression expression)
     {
-        MemberExpression memberExpression = Guard.Against.ConvertMember(expression);
+        if (expression == null)
+        {
+            throw new ArgumentException("Expression must be not null.");
+        }
+
+        if (expression is not MemberExpression memberExpression)
+        {
+            throw new ArgumentException($"Can not parse {expression} to MemberExpression");
+        }
 
         return memberExpression.Member switch
         {

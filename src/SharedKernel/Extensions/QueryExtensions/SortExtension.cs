@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using Ardalis.GuardClauses;
+using SharedKernel.Exceptions;
 using SharedKernel.Extensions.Expressions;
 using SharedKernel.Extensions.Reflections;
 using SharedKernel.Models;
