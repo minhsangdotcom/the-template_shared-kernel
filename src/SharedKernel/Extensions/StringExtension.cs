@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -154,6 +155,30 @@ public static partial class StringExtension
                 (char.IsUpper(curr) && (char.IsLower(prev) || char.IsLower(next)))
                 || (char.IsNumber(curr) && (!char.IsNumber(prev)))
             );
+    }
+
+    public static string CompressString(this string uncompressed)
+    {
+        byte[] compressedBytes;
+        using (MemoryStream ms = new())
+        {
+            using (DeflateStream ds = new(ms, CompressionMode.Compress))
+            {
+                byte[] buffer = Encoding.UTF8.GetBytes(uncompressed);
+                ds.Write(buffer, 0, buffer.Length);
+            }
+            compressedBytes = ms.ToArray();
+        }
+        return Convert.ToBase64String(compressedBytes);
+    }
+
+    public static string DecompressString(this string compressed)
+    {
+        byte[] compressedBytes = Convert.FromBase64String(compressed);
+        using MemoryStream ms = new(compressedBytes);
+        using DeflateStream ds = new(ms, CompressionMode.Decompress);
+        using StreamReader sr = new(ds);
+        return sr.ReadToEnd();
     }
 
     [GeneratedRegex("[^A-Za-z0-9_.]+")]
