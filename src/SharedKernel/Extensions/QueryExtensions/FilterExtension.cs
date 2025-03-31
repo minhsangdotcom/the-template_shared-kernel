@@ -418,7 +418,7 @@ public static class FilterExtension
             {
                 targetType = targetType.GenericTypeArguments[0];
             }
-            object? changedTypeValue = Convert.ChangeType(right, targetType);
+            object? changedTypeValue = right.ConvertTo(targetType);
             return new(
                 member,
                 changedTypeValue,
