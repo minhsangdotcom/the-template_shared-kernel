@@ -1,5 +1,7 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.Json.Serialization;
 using SharedKernel.Extensions.Expressions;
 using SharedKernel.Extensions.Reflections;
 using SharedKernel.Models;
@@ -358,20 +360,25 @@ public static class SearchExtensions
         List<KeyValuePair<PropertyType, string>> results = [];
 
         IEnumerable<PropertyInfo> properties = type.GetProperties();
-        List<KeyValuePair<PropertyType, string>> stringProperties = properties
-            .Where(x => x.PropertyType == typeof(string))
-            .Select(x => new KeyValuePair<PropertyType, string>(
-                propertyType ?? PropertyType.Property,
-                parrentName != null ? $"{parrentName}.{x.Name}" : x.Name
-            ))
-            .ToList();
+        List<KeyValuePair<PropertyType, string>> stringProperties =
+        [
+            .. properties
+                .Where(x => x.PropertyType == typeof(string))
+                .Select(x => new KeyValuePair<PropertyType, string>(
+                    propertyType ?? PropertyType.Property,
+                    parrentName != null ? $"{parrentName}.{x.Name}" : x.Name
+                )),
+        ];
 
         results.AddRange(stringProperties);
 
         List<PropertyInfo> collectionObjectProperties =
         [
             .. properties.Where(x =>
-                (x.IsUserDefineType() || x.IsArrayGenericType()) && x.PropertyType != typeof(string)
+                (x.IsUserDefineType() || x.IsArrayGenericType())
+                && x.PropertyType != typeof(string)
+                && !x.IsDefined(typeof(NotMappedAttribute))
+                && !x.IsDefined(typeof(JsonIgnoreAttribute))
             ),
         ];
 

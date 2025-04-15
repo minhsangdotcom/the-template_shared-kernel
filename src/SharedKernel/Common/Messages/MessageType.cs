@@ -9,7 +9,7 @@ public enum MessageType
     Existence = 5,
     Correct = 6,
     Active = 7,
-    OuttaOption = 8,
+    AmongTheAllowedOptions = 8,
     GreaterThan = 9,
     GreaterThanEqual = 10,
     LessThan = 11,
@@ -21,5 +21,5 @@ public enum MessageType
     Expired = 17,
     Redundant = 18,
     Missing = 19,
-    Matching = 20,
+    Identical = 20,
 }
