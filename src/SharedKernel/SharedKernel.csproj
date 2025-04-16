@@ -10,7 +10,7 @@
     <Authors>Tran Minh Sang</Authors>
     <Company>minhsangdotcom</Company>
     <PackageTags>csharp, nuget, clean architecture, code base</PackageTags>
-    <RepositoryUrl>https://github.com/minhsangdotcom/elasticsearch-fluent-configuration</RepositoryUrl>
+    <RepositoryUrl>https://github.com/minhsangdotcom/the-template_shared-kernel</RepositoryUrl>
     <PackageReadmeFile>README-NUGET.md</PackageReadmeFile>
   </PropertyGroup>
 
