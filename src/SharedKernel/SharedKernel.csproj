@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
 
     <PackageId>minhsangdotcom.TheTemplate.SharedKernel</PackageId>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Authors>Tran Minh Sang</Authors>
     <Company>minhsangdotcom</Company>
     <PackageTags>csharp, nuget, clean architecture, code base</PackageTags>
