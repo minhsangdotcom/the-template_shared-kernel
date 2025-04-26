@@ -99,7 +99,7 @@ public class Message<T>(string? entityName = null)
             languageType
         );
 
-        if (messageDictionary?.Preposition.HasValue == true)
+        if (messageDictionary?.Preposition.HasValue == true && !string.IsNullOrWhiteSpace(obj))
         {
             messagePreposition =
                 languageType == LanguageType.En
