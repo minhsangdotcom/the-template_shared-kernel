@@ -64,7 +64,7 @@ public class Message<T>(string? entityName = null)
 
         string en = Translate(LanguageType.En);
         string vi = Translate(LanguageType.Vi);
-        return new()
+        return new MessageResult
         {
             Message = string.Join("_", results).ToLower(),
             En = en,
@@ -147,12 +147,12 @@ public class Message<T>(string? entityName = null)
 
     private static string? BuildMainRawMessage(bool? isNegative, string? message)
     {
-        if (isNegative == true)
+        if (isNegative == false)
         {
-            string? mess = string.IsNullOrWhiteSpace(message) ? string.Empty : $"_{message}";
-            return "not" + mess;
+            return message;
         }
-        return message;
+        string? mess = string.IsNullOrWhiteSpace(message) ? string.Empty : $"_{message}";
+        return "not" + mess;
     }
 
     private static string? BuildMainTranslationMessage(
@@ -167,16 +167,15 @@ public class Message<T>(string? entityName = null)
             return negativeMessage;
         }
 
-        if (isNegative == true)
+        if (isNegative == false)
         {
-            string localeNegativeWord = languageType == LanguageType.En ? "not" : "không";
-            return string.Join(
-                " ",
-                new[] { localeNegativeWord, message }.Where(item => !string.IsNullOrEmpty(item))
-            );
+            return message;
         }
-
-        return message;
+        string localeNegativeWord = languageType == LanguageType.En ? "not" : "không";
+        return string.Join(
+            " ",
+            new[] { localeNegativeWord, message }.Where(item => !string.IsNullOrEmpty(item))
+        );
     }
 }
 
