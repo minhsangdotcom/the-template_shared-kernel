@@ -3,7 +3,7 @@ namespace SharedKernel.Common.Messages;
 public enum MessageType
 {
     MaximumLength = 1,
-    MinumumLength = 2,
+    MinimumLength = 2,
     Valid = 3,
     Found = 4,
     Existence = 5,

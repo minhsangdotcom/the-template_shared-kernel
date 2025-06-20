@@ -20,7 +20,7 @@ public static class ErrorMessage
                 )
             },
             {
-                MessageType.MinumumLength,
+                MessageType.MinimumLength,
                 new(
                     "too-short",
                     new Dictionary<string, string>()
@@ -28,7 +28,7 @@ public static class ErrorMessage
                         { LanguageType.En.ToString(), "too short" },
                         { LanguageType.Vi.ToString(), "quá ngắn" },
                     },
-                    MessageType.MinumumLength
+                    MessageType.MinimumLength
                 )
             },
             {

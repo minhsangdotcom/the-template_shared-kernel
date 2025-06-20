@@ -16,21 +16,50 @@ public static class Message
     public const string TOKEN_EXPIRED = "Token expired";
 }
 
+/// <summary>
+/// The structure entity + property + negative(if any) + message + object(if any)
+/// </summary>
+/// <typeparam name="T">must be class</typeparam>
+/// <param name="entityName">the display name that represents for entity</param>
 public class Message<T>(string? entityName = null)
     where T : class
 {
+    /// <summary>
+    /// entity name, it must be translated at Message.en.resx and Message.vi.resx
+    /// </summary>
     public string EntityName { get; } =
         string.IsNullOrWhiteSpace(entityName) ? typeof(T).Name : entityName;
 
-    public string ObjectName { get; internal set; } = string.Empty;
-
+    /// <summary>
+    /// property name, it must be translated at Message.en.resx and Message.vi.resx
+    /// </summary>
     public string? PropertyName { get; internal set; } = string.Empty;
 
+    /// <summary>
+    /// the object name for some cases, it must be translated at Message.en.resx and Message.vi.resx
+    /// ex End date is greater than start date(object)
+    /// </summary>
+    public string ObjectName { get; internal set; } = string.Empty;
+
+    /// <summary>
+    /// it's like comment section in resx file but manually
+    /// </summary>
+    public string? Additions { get; internal set; }
+
+    /// <summary>
+    /// the message, it's not in message store.
+    /// </summary>
     public CustomMessage? CustomMessage { get; internal set; }
 
     public MessageType Type { get; internal set; } = 0;
 
+    /// <summary>
+    /// not or
+    /// </summary>
     public bool? IsNegative { get; internal set; } = null;
+
+    public string EnglishTranslatedMessage { get; internal set; } = string.Empty;
+    public string VietnameseTranslatedMessage { get; internal set; } = string.Empty;
 
     private readonly Dictionary<MessageType, MessageDictionary> Messages =
         ErrorMessage.ErrorMessages;
@@ -50,20 +79,26 @@ public class Message<T>(string? entityName = null)
         string? negativeMessage =
             CustomMessage?.NegativeMessage ?? Messages.GetValueOrDefault(Type)?.NegativeMessage;
 
-        string? strMessage =
+        string? toBeMessageCombination =
             IsNegative == true && !string.IsNullOrWhiteSpace(negativeMessage)
                 ? negativeMessage
                 : BuildMainRawMessage(IsNegative, message);
 
-        results.Add(strMessage);
+        results.Add(toBeMessageCombination);
 
         if (!string.IsNullOrWhiteSpace(ObjectName))
         {
             results.Add(ObjectName.ToKebabCase());
         }
 
-        string en = Translate(LanguageType.En);
-        string vi = Translate(LanguageType.Vi);
+        string en = !string.IsNullOrWhiteSpace(EnglishTranslatedMessage)
+            ? EnglishTranslatedMessage
+            : Translate(LanguageType.En);
+
+        string vi = !string.IsNullOrWhiteSpace(VietnameseTranslatedMessage)
+            ? VietnameseTranslatedMessage
+            : Translate(LanguageType.Vi);
+
         return new MessageResult
         {
             Message = string.Join("_", results).ToLower(),
@@ -91,20 +126,45 @@ public class Message<T>(string? entityName = null)
 
         string messagePreposition = string.Empty;
         MessageDictionary? messageDictionary = Type == 0 ? null : Messages.GetValueOrDefault(Type);
+
+        string? negativeToBeTranslation = null;
+        if (languageType == LanguageType.Vi)
+        {
+            string[]? comment = !string.IsNullOrWhiteSpace(Additions)
+                ? Additions?.Trim()?.Split(",")
+                : propertyTranslation?.Comment?.Trim()?.Split(",");
+
+            string? translation = comment?.FirstOrDefault(x =>
+            {
+                string[] parts = x.Split("=");
+                return parts.Length > 0 && parts[0] == "ViToBeTranslation";
+            });
+            string[]? values = translation?.Split("=");
+            negativeToBeTranslation = values?.Length > 0 ? values[1] : null;
+        }
+
         string? message = BuildMainTranslationMessage(
             IsNegative,
             CustomMessage?.NegativeMessage ?? messageDictionary?.NegativeMessage,
             CustomMessage?.CustomMessageTranslations[languageType.ToString()]
                 ?? messageDictionary?.Translation[languageType.ToString()],
-            languageType
+            languageType,
+            negativeToBeTranslation
         );
 
-        if (messageDictionary?.Preposition.HasValue == true && !string.IsNullOrWhiteSpace(obj))
+        if (
+            (
+                CustomMessage?.Preposition.HasValue == true
+                || messageDictionary?.Preposition.HasValue == true
+            ) && !string.IsNullOrWhiteSpace(obj)
+        )
         {
             messagePreposition =
                 languageType == LanguageType.En
-                    ? messageDictionary.Preposition!.Value.Key
-                    : messageDictionary.Preposition!.Value.Value;
+                    ? CustomMessage?.Preposition?.Key ?? messageDictionary?.Preposition?.Key ?? ""
+                    : CustomMessage?.Preposition?.Value
+                        ?? messageDictionary?.Preposition?.Value
+                        ?? "";
         }
 
         string verb = string.Empty;
@@ -155,11 +215,15 @@ public class Message<T>(string? entityName = null)
         return "not" + mess;
     }
 
+    // get the translation of to be verb + message
+    // en : not found
+    // không tìm thấy
     private static string? BuildMainTranslationMessage(
         bool? isNegative,
         string? negativeMessage,
         string? message,
-        LanguageType languageType
+        LanguageType languageType,
+        string? viTranslation = null
     )
     {
         if (languageType == LanguageType.En && !string.IsNullOrWhiteSpace(negativeMessage))
@@ -171,7 +235,8 @@ public class Message<T>(string? entityName = null)
         {
             return message;
         }
-        string localeNegativeWord = languageType == LanguageType.En ? "not" : "không";
+        string localeNegativeWord =
+            languageType == LanguageType.En ? "not" : viTranslation ?? "không";
         return string.Join(
             " ",
             new[] { localeNegativeWord, message }.Where(item => !string.IsNullOrEmpty(item))
@@ -182,5 +247,6 @@ public class Message<T>(string? entityName = null)
 public record CustomMessage(
     string Message,
     Dictionary<string, string> CustomMessageTranslations,
-    string? NegativeMessage = null
+    string? NegativeMessage = null,
+    KeyValuePair<string, string>? Preposition = null
 );
