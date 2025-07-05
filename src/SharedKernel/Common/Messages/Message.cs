@@ -56,7 +56,7 @@ public class Message<T>(string? entityName = null)
     /// <summary>
     /// not or
     /// </summary>
-    public bool? IsNegative { get; internal set; } = null;
+    public bool IsNegative { get; internal set; }
 
     public string EnglishTranslatedMessage { get; internal set; } = string.Empty;
     public string VietnameseTranslatedMessage { get; internal set; } = string.Empty;
@@ -80,7 +80,7 @@ public class Message<T>(string? entityName = null)
             CustomMessage?.NegativeMessage ?? Messages.GetValueOrDefault(Type)?.NegativeMessage;
 
         string? toBeMessageCombination =
-            IsNegative == true && !string.IsNullOrWhiteSpace(negativeMessage)
+            IsNegative && !string.IsNullOrWhiteSpace(negativeMessage)
                 ? negativeMessage
                 : BuildMainRawMessage(IsNegative, message);
 
@@ -205,7 +205,7 @@ public class Message<T>(string? entityName = null)
         return string.Join(' ', notEmptyWord);
     }
 
-    private static string? BuildMainRawMessage(bool? isNegative, string? message)
+    private static string? BuildMainRawMessage(bool isNegative, string? message)
     {
         if (isNegative == false)
         {
@@ -219,7 +219,7 @@ public class Message<T>(string? entityName = null)
     // en : not found
     // không tìm thấy
     private static string? BuildMainTranslationMessage(
-        bool? isNegative,
+        bool isNegative,
         string? negativeMessage,
         string? message,
         LanguageType languageType,
