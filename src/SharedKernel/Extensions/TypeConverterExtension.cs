@@ -7,14 +7,16 @@ public static class TypeConverterExtension
 {
     public static object? ConvertTo(this object? input, Type targetType)
     {
-        if (input == null)
+        if (input is null)
         {
             return null;
         }
 
+        Type underlyingTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
         Type inputType = input.GetType();
         if (
-            targetType.IsAssignableFrom(input.GetType())
+            targetType.IsAssignableFrom(inputType)
             || inputType.IsUserDefineType()
             || inputType.IsArrayGenericType()
             || (inputType != typeof(string) && typeof(IEnumerable).IsAssignableFrom(inputType))
@@ -25,23 +27,36 @@ public static class TypeConverterExtension
 
         try
         {
-            if (targetType == typeof(DateTimeOffset))
+            if (underlyingTargetType == typeof(DateOnly))
             {
                 if (input is DateTime dt)
                 {
-                    return new DateTimeOffset(dt);
+                    return DateOnly.FromDateTime(dt);
                 }
-                if (DateTimeOffset.TryParse(input.ToString(), out DateTimeOffset dto))
+
+                if (input is string date && DateOnly.TryParse(date, out DateOnly parsedDate))
+                {
+                    return parsedDate;
+                }
+            }
+
+            if (underlyingTargetType == typeof(DateTimeOffset))
+            {
+                if (input is DateTime dt2)
+                {
+                    return new DateTimeOffset(dt2);
+                }
+                if (input is string date && DateTimeOffset.TryParse(date, out DateTimeOffset dto))
                 {
                     return dto;
                 }
             }
 
-            return Convert.ChangeType(input, targetType);
+            return Convert.ChangeType(input, underlyingTargetType);
         }
         catch (Exception ex) when (ex is InvalidCastException || ex is FormatException)
         {
-            throw new InvalidCastException($"Cannot convert {input.GetType()} to {targetType}", ex);
+            throw new InvalidCastException($"Cannot convert from {inputType} to {targetType}", ex);
         }
     }
 }

@@ -75,11 +75,11 @@ public static class FilterExtension
                 PropertyInfo propertyInfo = type.GetNestedPropertyInfo(propertyName);
                 Type propertyType = propertyInfo.PropertyType;
 
-                Expression memeberExpression = paramOrMember.MemberExpression(type, propertyName);
+                Expression memberExpression = paramOrMember.MemberExpression(type, propertyName);
 
                 expression = ProcessObject(
                     propertyInfo,
-                    new(memeberExpression, propertyType, parameterName.NextUniformSequence(), value)
+                    new(memberExpression, propertyType, parameterName.NextUniformSequence(), value)
                 );
             }
 
@@ -170,7 +170,7 @@ public static class FilterExtension
     }
 
     /// <summary>
-    /// Do compararison
+    /// Do comparison
     /// </summary>
     /// <param name="operationString"></param>
     /// <param name="left"></param>
@@ -185,15 +185,15 @@ public static class FilterExtension
             return CompareBetweenOperations(left, right);
         }
 
-        bool isFound = BinaryCompararisions.TryGetValue(operationType, out var comparisonFunc);
+        bool isFound = BinaryComparisons.TryGetValue(operationType, out var comparisonFunc);
         if (!isFound)
         {
-            if (!MethodCallCompararisions.TryGetValue(operationType, out var callMethodType))
+            if (!MethodCallComparisons.TryGetValue(operationType, out var callMethodType))
             {
                 throw new NotFoundException(nameof(operationType), nameof(operationType));
             }
 
-            return CompareMethodCallOpertations(left, right, callMethodType, operationType);
+            return CompareMethodCallOperations(left, right, callMethodType, operationType);
         }
 
         return CompareBinaryOperations(left, right, comparisonFunc!, operationType);
@@ -205,8 +205,8 @@ public static class FilterExtension
 
         List<Func<Expression, Expression, BinaryExpression>> operations =
         [
-            BinaryCompararisions[OperationType.Gte],
-            BinaryCompararisions[OperationType.Lte],
+            BinaryComparisons[OperationType.Gte],
+            BinaryComparisons[OperationType.Lte],
         ];
 
         BinaryExpression body = null!;
@@ -256,7 +256,7 @@ public static class FilterExtension
         return comparisonFunc(convert.Member, convert.Value);
     }
 
-    private static BinaryExpression CompareMethodCallOpertations(
+    private static BinaryExpression CompareMethodCallOperations(
         Expression left,
         object right,
         KeyValuePair<Type, string> callMethodType,
@@ -284,11 +284,11 @@ public static class FilterExtension
             return NotOr(operationType, expression);
         }
 
-        Expression outter = left;
+        Expression outer = left;
         Expression inner = Expression.Constant(right);
         if (operationType.ToString().EndsWith("i", StringComparison.OrdinalIgnoreCase))
         {
-            outter = Expression.Call(left, nameof(string.ToLower), Type.EmptyTypes);
+            outer = Expression.Call(left, nameof(string.ToLower), Type.EmptyTypes);
             inner = Expression.Call(
                 Expression.Constant(right),
                 nameof(string.ToLower),
@@ -297,7 +297,7 @@ public static class FilterExtension
         }
 
         MethodCallExpression result = Expression.Call(
-            outter,
+            outer,
             callMethodType.Key.GetMethod(callMethodType.Value, [typeof(string)])!,
             inner
         );
@@ -457,7 +457,7 @@ public static class FilterExtension
     private static readonly Dictionary<
         OperationType,
         Func<Expression, Expression, BinaryExpression>
-    > BinaryCompararisions =
+    > BinaryComparisons =
         new()
         {
             { OperationType.Eq, Expression.Equal },
@@ -473,7 +473,7 @@ public static class FilterExtension
     private static readonly Dictionary<
         OperationType,
         KeyValuePair<Type, string>
-    > MethodCallCompararisions =
+    > MethodCallComparisons =
         new()
         {
             { OperationType.In, new(typeof(Enumerable), nameof(Enumerable.Contains)) },
