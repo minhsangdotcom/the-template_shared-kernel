@@ -34,9 +34,17 @@ public static class TypeConverterExtension
                     return DateOnly.FromDateTime(dt);
                 }
 
-                if (input is string date && DateOnly.TryParse(date, out DateOnly parsedDate))
+                if (input is string date)
                 {
-                    return parsedDate;
+                    if (DateTimeOffset.TryParse(date, out var dto))
+                    {
+                        return DateOnly.FromDateTime(dto.UtcDateTime);
+                    }
+
+                    if (DateTime.TryParse(date, out var datetime))
+                    {
+                        return DateOnly.FromDateTime(datetime);
+                    }
                 }
             }
 
