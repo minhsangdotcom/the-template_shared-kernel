@@ -34,6 +34,11 @@ public static class TypeConverterExtension
                     return DateOnly.FromDateTime(dt);
                 }
 
+                if (input is DateTimeOffset dateTimeOffset)
+                {
+                    return DateOnly.FromDateTime(dateTimeOffset.UtcDateTime);
+                }
+
                 if (input is string date)
                 {
                     if (DateTimeOffset.TryParse(date, out var dto))
@@ -52,8 +57,15 @@ public static class TypeConverterExtension
             {
                 if (input is DateTime dt2)
                 {
-                    return new DateTimeOffset(dt2);
+                    return new DateTimeOffset(dt2, TimeZoneInfo.Local.GetUtcOffset(dt2));
                 }
+
+                if (input is DateOnly dateOnly)
+                {
+                    DateTime dateTime = dateOnly.ToDateTime(TimeOnly.MinValue);
+                    return new DateTimeOffset(dateTime, TimeZoneInfo.Local.GetUtcOffset(dateTime));
+                }
+
                 if (input is string date && DateTimeOffset.TryParse(date, out DateTimeOffset dto))
                 {
                     return dto;
