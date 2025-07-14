@@ -285,15 +285,12 @@ public static class FilterExtension
         }
 
         Expression outer = left;
-        Expression inner = Expression.Constant(right);
+        ConstantExpression value = Expression.Constant(right.ToString());
+        Expression inner = value;
         if (operationType.ToString().EndsWith("i", StringComparison.OrdinalIgnoreCase))
         {
             outer = Expression.Call(left, nameof(string.ToLower), Type.EmptyTypes);
-            inner = Expression.Call(
-                Expression.Constant(right),
-                nameof(string.ToLower),
-                Type.EmptyTypes
-            );
+            inner = Expression.Call(value, nameof(string.ToLower), Type.EmptyTypes);
         }
 
         MethodCallExpression result = Expression.Call(
