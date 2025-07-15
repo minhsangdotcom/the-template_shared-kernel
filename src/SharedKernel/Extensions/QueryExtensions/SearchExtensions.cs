@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using SharedKernel.Extensions.Expressions;
 using SharedKernel.Extensions.Reflections;
 using SharedKernel.Models;
@@ -23,7 +24,8 @@ public static class SearchExtensions
         this IQueryable<T> query,
         string? keyword,
         List<string>? fields = null,
-        int deep = 1
+        int deep = 1,
+        DbProvider? dbProvider = DbProvider.Postgresql
     )
     {
         if (string.IsNullOrWhiteSpace(keyword))
@@ -31,7 +33,7 @@ public static class SearchExtensions
             return query;
         }
 
-        SearchResult searchResult = Search<T>(fields, keyword, deep, false);
+        SearchResult searchResult = Search<T>(fields, keyword, deep, false, dbProvider);
 
         return query.Where(
             Expression.Lambda<Func<T, bool>>(searchResult.Expression, searchResult.Parameter)
@@ -72,7 +74,8 @@ public static class SearchExtensions
         IEnumerable<string>? fields,
         string keyword,
         int deep,
-        bool isNullCheck = false
+        bool isNullCheck = false,
+        DbProvider? dbProvider = DbProvider.Postgresql
     )
     {
         if (deep < 0)
@@ -83,7 +86,7 @@ public static class SearchExtensions
         ParameterExpression parameter = Expression.Parameter(typeof(T), "a");
 
         return new(
-            SearchBodyExpression<T>(parameter, keyword, fields, deep, isNullCheck),
+            SearchBodyExpression<T>(parameter, keyword, fields, deep, isNullCheck, dbProvider),
             parameter
         );
     }
@@ -103,17 +106,18 @@ public static class SearchExtensions
         string keyword,
         IEnumerable<string>? fields = null,
         int deep = 0,
-        bool isNullCheck = false
+        bool isNullCheck = false,
+        DbProvider? dbProvider = DbProvider.Postgresql
     )
     {
         Type type = typeof(T);
         ParameterExpression rootParameter = parameter;
 
-        MethodCallExpression constant = Expression.Call(
-            Expression.Constant(keyword),
-            nameof(string.ToLower),
-            Type.EmptyTypes
-        );
+        // MethodCallExpression constant = Expression.Call(
+        //     Expression.Constant(keyword),
+        //     nameof(string.ToLower),
+        //     Type.EmptyTypes
+        // );
 
         Expression? body = null!;
         List<KeyValuePair<PropertyType, string>> searchFields =
@@ -131,9 +135,17 @@ public static class SearchExtensions
             Expression expression =
                 field.Key == PropertyType.Array
                     ? BuildAnyQuery(
-                        new(type, field.Value, rootParameter, keyword, "b", isNullCheck)
+                        new(type, field.Value, rootParameter, keyword, "b", isNullCheck),
+                        dbProvider
                     )
-                    : BuildContainsQuery(type, field.Value, rootParameter, constant, isNullCheck);
+                    : BuildContainsQuery(
+                        type,
+                        field.Value,
+                        rootParameter,
+                        keyword,
+                        isNullCheck,
+                        dbProvider
+                    );
 
             body = body == null ? expression : Expression.OrElse(body, expression);
         }
@@ -146,7 +158,10 @@ public static class SearchExtensions
     /// </summary>
     /// <param name="payload"></param>
     /// <returns></returns>
-    static Expression BuildAnyQuery(BuildAnyQueryPayload payload)
+    static Expression BuildAnyQuery(
+        BuildAnyQueryPayload payload,
+        DbProvider? dbProvider = DbProvider.Postgresql
+    )
     {
         string propertyPath = payload.PropertyPath;
         string keyword = payload.Keyword;
@@ -169,13 +184,24 @@ public static class SearchExtensions
             Expression isNull = Expression.Equal(member, Expression.Constant(null));
             Expression notExpression = Expression.Not(isNull);
 
+            MethodCallExpression methodCallExpression = Expression.Call(
+                lower,
+                nameof(string.Contains),
+                Type.EmptyTypes,
+                constant
+            );
+            if (dbProvider == DbProvider.Postgresql)
+            {
+                methodCallExpression = CompareCaseInSensitive(member, keyword);
+            }
+
             return payload.IsNullChecking
                 ? Expression.Condition(
                     AndOrNot(notExpression, nullCheck),
-                    Expression.Call(lower, nameof(string.Contains), Type.EmptyTypes, constant),
+                    methodCallExpression,
                     Expression.Constant(false)
                 )
-                : Expression.Call(lower, nameof(string.Contains), Type.EmptyTypes, constant);
+                : methodCallExpression;
         }
 
         string[] properties = propertyPath.Split('.');
@@ -253,18 +279,29 @@ public static class SearchExtensions
         Type type,
         string propertyName,
         Expression parameter,
-        MethodCallExpression keyword,
-        bool isNullCheck = false
+        string keyword,
+        bool isNullCheck = false,
+        DbProvider? dbProvider = DbProvider.Postgresql
     )
     {
+        MethodCallExpression valueExpression = Expression.Call(
+            Expression.Constant(keyword),
+            nameof(string.ToLower),
+            Type.EmptyTypes
+        );
+
         if (!isNullCheck)
         {
             Expression member = parameter.MemberExpression(type, propertyName);
+            if (dbProvider == DbProvider.Postgresql)
+            {
+                return CompareCaseInSensitive(member, keyword);
+            }
             return Expression.Call(
                 Expression.Call(member, nameof(string.ToLower), Type.EmptyTypes),
                 nameof(string.Contains),
                 Type.EmptyTypes,
-                keyword
+                valueExpression
             );
         }
 
@@ -281,9 +318,31 @@ public static class SearchExtensions
 
         return Expression.Condition(
             memberExpressionResult.NullCheck,
-            Expression.Call(lower, nameof(string.Contains), Type.EmptyTypes, keyword),
+            Expression.Call(lower, nameof(string.Contains), Type.EmptyTypes, valueExpression),
             Expression.Constant(false)
         );
+    }
+
+    private static MethodCallExpression CompareCaseInSensitive(Expression left, object? value)
+    {
+        MethodInfo iLikeMethod = typeof(NpgsqlDbFunctionsExtensions).GetMethod(
+            nameof(NpgsqlDbFunctionsExtensions.ILike),
+            [typeof(DbFunctions), typeof(string), typeof(string)]
+        )!;
+
+        MemberExpression efFunctions = Expression.Property(null, typeof(EF), nameof(EF.Functions));
+        MethodInfo unaccentMethod = typeof(PostgresDbFunctionExtensions).GetMethod(
+            nameof(PostgresDbFunctionExtensions.Unaccent),
+            [typeof(string)]
+        )!;
+
+        MethodCallExpression leftExpression = Expression.Call(unaccentMethod, left);
+        MethodCallExpression rightExpression = Expression.Call(
+            unaccentMethod,
+            Expression.Constant($"%{value}%")
+        );
+
+        return Expression.Call(iLikeMethod, efFunctions, leftExpression, rightExpression);
     }
 
     /// <summary>

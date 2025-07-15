@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
 using SharedKernel.Extensions.Expressions;
 using SharedKernel.Extensions.Reflections;
@@ -10,7 +11,11 @@ namespace SharedKernel.Extensions.QueryExtensions;
 
 public static class FilterExtension
 {
-    public static IQueryable<T> Filter<T>(this IQueryable<T> query, object? filterObject)
+    public static IQueryable<T> Filter<T>(
+        this IQueryable<T> query,
+        object? filterObject,
+        DbProvider? dbProvider = DbProvider.Postgresql
+    )
     {
         if (filterObject == null)
         {
@@ -19,7 +24,7 @@ public static class FilterExtension
 
         Type type = typeof(T);
         ParameterExpression parameter = Expression.Parameter(type, "a");
-        Expression expression = FilterExpression(filterObject, parameter, type, "b");
+        Expression expression = FilterExpression(filterObject, parameter, type, "b", dbProvider);
 
         var lamda = Expression.Lambda<Func<T, bool>>(expression, parameter);
 
@@ -33,7 +38,8 @@ public static class FilterExtension
         dynamic filterObject,
         Expression paramOrMember,
         Type type,
-        string parameterName
+        string parameterName,
+        DbProvider? dbProvider
     )
     {
         var dynamicFilters = (IDictionary<string, object>)filterObject;
@@ -58,7 +64,7 @@ public static class FilterExtension
             if (isAndOperator != 0 && isOrOperator != 0 && propertyName.Contains('$'))
             {
                 Expression left = paramOrMember;
-                return Compare(propertyName, left, value);
+                return Compare(propertyName, left, value, dbProvider);
             }
 
             Expression expression = null!;
@@ -79,7 +85,8 @@ public static class FilterExtension
 
                 expression = ProcessObject(
                     propertyInfo,
-                    new(memberExpression, propertyType, parameterName.NextUniformSequence(), value)
+                    new(memberExpression, propertyType, parameterName.NextUniformSequence(), value),
+                    dbProvider
                 );
             }
 
@@ -99,7 +106,8 @@ public static class FilterExtension
     private static Expression ProcessList(
         IEnumerable<object> values,
         FilterExpressionPayload payload,
-        bool isAndOperator = false
+        bool isAndOperator = false,
+        DbProvider? dbProvider = DbProvider.Postgresql
     )
     {
         Expression body = null!;
@@ -109,7 +117,8 @@ public static class FilterExtension
                 value,
                 payload.ParamOrMember,
                 payload.Type,
-                payload.ParameterName
+                payload.ParameterName,
+                dbProvider
             );
 
             body =
@@ -129,7 +138,8 @@ public static class FilterExtension
     /// <returns></returns>
     private static Expression ProcessObject(
         PropertyInfo propertyInfo,
-        FilterExpressionPayload payload
+        FilterExpressionPayload payload,
+        DbProvider? dbProvider = DbProvider.Postgresql
     )
     {
         Type propertyType = payload.Type;
@@ -147,7 +157,8 @@ public static class FilterExtension
                 payload.Value!,
                 anyParameter,
                 propertyType,
-                payload.ParameterName
+                payload.ParameterName,
+                dbProvider
             );
 
             LambdaExpression anyLamda = Expression.Lambda(operationBody, anyParameter);
@@ -165,7 +176,8 @@ public static class FilterExtension
             payload.Value!,
             payload.ParamOrMember,
             propertyType,
-            payload.ParameterName
+            payload.ParameterName,
+            dbProvider
         );
     }
 
@@ -176,7 +188,12 @@ public static class FilterExtension
     /// <param name="left"></param>
     /// <param name="right"></param>
     /// <returns></returns>
-    private static BinaryExpression Compare(string operationString, Expression left, object right)
+    private static BinaryExpression Compare(
+        string operationString,
+        Expression left,
+        object right,
+        DbProvider? dbProvider = DbProvider.Postgresql
+    )
     {
         OperationType operationType = GetOperationType(operationString);
 
@@ -196,7 +213,7 @@ public static class FilterExtension
             return CompareMethodCallOperations(left, right, callMethodType, operationType);
         }
 
-        return CompareBinaryOperations(left, right, comparisonFunc!, operationType);
+        return CompareBinaryOperations(left, right, comparisonFunc!, operationType, dbProvider);
     }
 
     private static BinaryExpression CompareBetweenOperations(Expression left, object right)
@@ -231,7 +248,8 @@ public static class FilterExtension
         Expression left,
         object right,
         Func<Expression, Expression, BinaryExpression> comparisonFunc,
-        OperationType operationType
+        OperationType operationType,
+        DbProvider? dbProvider = DbProvider.Postgresql
     )
     {
         if (
@@ -239,6 +257,11 @@ public static class FilterExtension
             && ((MemberExpression)left).GetMemberExpressionType() == typeof(string)
         )
         {
+            if (dbProvider == DbProvider.Postgresql)
+            {
+                return EqualCaseInSensitive(left, right);
+            }
+
             MethodCallExpression member = Expression.Call(
                 left,
                 nameof(string.ToLower),
@@ -260,7 +283,8 @@ public static class FilterExtension
         Expression left,
         object right,
         KeyValuePair<Type, string> callMethodType,
-        OperationType operationType
+        OperationType operationType,
+        DbProvider? dbProvider = DbProvider.Postgresql
     )
     {
         if (operationType == OperationType.In || operationType == OperationType.NotIn)
@@ -285,12 +309,20 @@ public static class FilterExtension
         }
 
         Expression outer = left;
-        ConstantExpression value = Expression.Constant(right.ToString());
-        Expression inner = value;
+        Expression inner = Expression.Constant(right.ToString());
         if (operationType.ToString().EndsWith("i", StringComparison.OrdinalIgnoreCase))
         {
+            if (dbProvider == DbProvider.Postgresql)
+            {
+                return CompareCaseInSensitive(left, right, operationType);
+            }
+
             outer = Expression.Call(left, nameof(string.ToLower), Type.EmptyTypes);
-            inner = Expression.Call(value, nameof(string.ToLower), Type.EmptyTypes);
+            inner = Expression.Call(
+                Expression.Constant(right.ToString()),
+                nameof(string.ToLower),
+                Type.EmptyTypes
+            );
         }
 
         MethodCallExpression result = Expression.Call(
@@ -300,6 +332,66 @@ public static class FilterExtension
         );
 
         return NotOr(operationType, result);
+    }
+
+    /// <summary>
+    /// just for postgresql
+    /// </summary>
+    /// <param name="left"></param>
+    /// <param name="value"></param>
+    /// <param name="operationType"></param>
+    /// <returns></returns>
+    private static BinaryExpression CompareCaseInSensitive(
+        Expression left,
+        object? value,
+        OperationType operationType
+    )
+    {
+        MethodInfo iLikeMethod = typeof(NpgsqlDbFunctionsExtensions).GetMethod(
+            nameof(NpgsqlDbFunctionsExtensions.ILike),
+            [typeof(DbFunctions), typeof(string), typeof(string)]
+        )!;
+
+        MemberExpression efFunctions = Expression.Property(null, typeof(EF), nameof(EF.Functions));
+        MethodInfo unaccentMethod = typeof(PostgresDbFunctionExtensions).GetMethod(
+            nameof(PostgresDbFunctionExtensions.Unaccent),
+            [typeof(string)]
+        )!;
+
+        MethodCallExpression leftExpression = Expression.Call(unaccentMethod, left);
+        MethodCallExpression rightExpression = Expression.Call(
+            unaccentMethod,
+            Expression.Constant($"%{value}%")
+        );
+
+        var iLikeMethodCall = Expression.Call(
+            iLikeMethod,
+            efFunctions,
+            leftExpression,
+            rightExpression
+        );
+        return NotOr(operationType, iLikeMethodCall);
+    }
+
+    private static BinaryExpression EqualCaseInSensitive(Expression left, object? value)
+    {
+        MemberExpression efFunctions = Expression.Property(null, typeof(EF), nameof(EF.Functions));
+        MethodInfo unaccentMethod = typeof(PostgresDbFunctionExtensions).GetMethod(
+            nameof(PostgresDbFunctionExtensions.Unaccent),
+            [typeof(string)]
+        )!;
+
+        var toLowerMethod = typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!;
+        MethodCallExpression leftToLower = Expression.Call(left, toLowerMethod);
+        string? rightValue = value?.ToString()?.ToLower();
+
+        MethodCallExpression leftExpression = Expression.Call(unaccentMethod, leftToLower);
+        MethodCallExpression rightExpression = Expression.Call(
+            unaccentMethod,
+            Expression.Constant(rightValue)
+        );
+
+        return Expression.Equal(leftExpression, rightExpression);
     }
 
     private static BinaryExpression NotOr(OperationType operationType, Expression expression) =>
