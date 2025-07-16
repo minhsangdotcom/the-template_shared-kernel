@@ -1,18 +1,23 @@
 using System.Collections;
+using deniszykov.TypeConversion;
 using SharedKernel.Extensions.Reflections;
 
 namespace SharedKernel.Extensions;
 
 public static class TypeConverterExtension
 {
+    /// <summary>
+    /// convert only string object to specific type
+    /// </summary>
+    /// <param name="input"></param>
+    /// <param name="targetType"></param>
+    /// <returns></returns>
     public static object? ConvertTo(this object? input, Type targetType)
     {
         if (input is null)
         {
             return null;
         }
-
-        Type underlyingTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
         Type inputType = input.GetType();
         if (
@@ -25,58 +30,20 @@ public static class TypeConverterExtension
             return input;
         }
 
-        try
+        Type underlyingTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+        if (underlyingTargetType == typeof(DateTime))
         {
-            if (underlyingTargetType == typeof(DateOnly))
-            {
-                if (input is DateTime dt)
-                {
-                    return DateOnly.FromDateTime(dt);
-                }
-
-                if (input is DateTimeOffset dateTimeOffset)
-                {
-                    return DateOnly.FromDateTime(dateTimeOffset.DateTime);
-                }
-
-                if (input is string date)
-                {
-                    if (DateTimeOffset.TryParse(date, out var dto))
-                    {
-                        return DateOnly.FromDateTime(dto.DateTime);
-                    }
-
-                    if (DateTime.TryParse(date, out var datetime))
-                    {
-                        return DateOnly.FromDateTime(datetime);
-                    }
-                }
-            }
-
-            if (underlyingTargetType == typeof(DateTimeOffset))
-            {
-                if (input is DateTime dt2)
-                {
-                    return new DateTimeOffset(dt2, TimeZoneInfo.Local.GetUtcOffset(dt2));
-                }
-
-                if (input is DateOnly dateOnly)
-                {
-                    DateTime dateTime = dateOnly.ToDateTime(TimeOnly.MinValue);
-                    return new DateTimeOffset(dateTime);
-                }
-
-                if (input is string date && DateTimeOffset.TryParse(date, out DateTimeOffset dto))
-                {
-                    return dto;
-                }
-            }
-
             return Convert.ChangeType(input, underlyingTargetType);
         }
-        catch (Exception ex) when (ex is InvalidCastException || ex is FormatException)
+
+        if (underlyingTargetType == typeof(Ulid))
         {
-            throw new InvalidCastException($"Cannot convert from {inputType} to {targetType}", ex);
+            Ulid ulid = input == null ? Ulid.Empty : Ulid.Parse(input.ToString());
+            return ulid;
         }
+
+        var conversionProvider = new TypeConversionProvider();
+        object? result = conversionProvider.Convert(typeof(object), targetType, input);
+        return result;
     }
 }

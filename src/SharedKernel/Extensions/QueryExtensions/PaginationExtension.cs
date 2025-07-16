@@ -308,29 +308,6 @@ public static class PaginationExtension
         Type leftType = left.GetMemberExpressionType();
         Type? rightType = right?.GetType();
 
-        if (leftType == typeof(Guid))
-        {
-            Guid uuid = right == null ? Guid.Empty : Guid.Parse(right.ToString()!);
-            return new(member, Expression.Constant(uuid, leftType));
-        }
-
-        if (leftType == typeof(Ulid))
-        {
-            Ulid ulid = right == null ? Ulid.Empty : Ulid.Parse(right.ToString());
-            return new(member, Expression.Constant(ulid, leftType));
-        }
-
-        if (
-            leftType.IsNullable()
-                && leftType.GenericTypeArguments.Length > 0
-                && leftType.GenericTypeArguments[0].IsEnum
-            || leftType.IsEnum
-        )
-        {
-            Type type = rightType ?? typeof(long);
-            return new(Expression.Convert(member, type), Expression.Constant(right, type));
-        }
-
         if (leftType != rightType)
         {
             Type targetType = leftType;

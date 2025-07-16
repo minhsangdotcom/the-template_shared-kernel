@@ -465,7 +465,8 @@ public static class FilterExtension
             {
                 type = targetType.GenericTypeArguments[0];
             }
-            typedList.Add(Convert.ChangeType(item, type));
+            //typedList.Add(Convert.ChangeType(item, type));
+            typedList.Add(item.ConvertTo(type));
         }
 
         return new(typedList, listType);
@@ -476,34 +477,6 @@ public static class FilterExtension
         Expression member = left;
         Type leftType = left.GetMemberExpressionType();
         Type? rightType = right?.GetType();
-
-        if (leftType == typeof(Guid))
-        {
-            Guid uuid = right == null ? Guid.Empty : Guid.Parse(right.ToString()!);
-            return new(member, uuid, Expression.Constant(uuid, leftType), leftType);
-        }
-
-        if (leftType == typeof(Ulid))
-        {
-            Ulid ulid = right == null ? Ulid.Empty : Ulid.Parse(right.ToString());
-            return new(member, ulid, Expression.Constant(ulid, leftType), leftType);
-        }
-
-        if (
-            leftType.IsNullable()
-                && leftType.GenericTypeArguments.Length > 0
-                && leftType.GenericTypeArguments[0].IsEnum
-            || leftType.IsEnum
-        )
-        {
-            Type type = rightType ?? typeof(long);
-            return new(
-                Expression.Convert(member, type),
-                right,
-                Expression.Constant(right, type),
-                type
-            );
-        }
 
         if (leftType != rightType)
         {
