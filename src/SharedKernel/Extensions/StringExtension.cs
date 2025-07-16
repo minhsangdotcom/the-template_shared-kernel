@@ -181,6 +181,26 @@ public static partial class StringExtension
         return sr.ReadToEnd();
     }
 
+    /// <summary>
+    /// check if string is integer digit
+    /// </summary>
+    /// <param name="str"></param>
+    /// <returns></returns>
+    public static bool IsDigit(this string str)
+    {
+        if (string.IsNullOrEmpty(str))
+        {
+            return false;
+        }
+
+        foreach (var c in str)
+        {
+            if (c is < '0' or > '9')
+                return false;
+        }
+        return true;
+    }
+
     [GeneratedRegex("[^A-Za-z0-9_.]+")]
     private static partial Regex RemoveSpecialCharacterRegex();
 
