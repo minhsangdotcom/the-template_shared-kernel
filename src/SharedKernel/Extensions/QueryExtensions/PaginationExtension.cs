@@ -63,7 +63,6 @@ public static class PaginationExtension
     )
     {
         string sort = $"{request.Sort},{request.UniqueSort}";
-
         int totalPage = query.Count();
         if (totalPage == 0)
         {
@@ -72,15 +71,16 @@ public static class PaginationExtension
 
         bool IsPreviousMove = !string.IsNullOrWhiteSpace(request.Before);
         string originalSort = sort;
-        if (IsPreviousMove)
-        {
-            sort = ReverseSortOrder(sort);
-        }
 
-        IQueryable<T> sortedQuery = query.Sort(sort);
-
+        IQueryable<T> sortedQuery = query.Sort(originalSort);
         T? first = sortedQuery.FirstOrDefault();
         T? last = sortedQuery.LastOrDefault();
+
+        if (IsPreviousMove)
+        {
+            sort = ReverseSortOrder(originalSort);
+            sortedQuery = sortedQuery.Sort(sort);
+        }
 
         PaginationResult<T> result = await CursorPaginateAsync(
             new PaginationPayload<T>(
@@ -141,7 +141,7 @@ public static class PaginationExtension
         string? pre = EncodeCursor(first, payload.Sort);
 
         var cursor = payload.IsPrevious ? first : last;
-        var flag = payload.IsPrevious ? payload.Last : payload.First;
+        var flag = payload.IsPrevious ? payload.First : payload.Last;
         if (count < payload.Size || (count == payload.Size && CompareToTheFlag(cursor, flag)))
         {
             if (!payload.IsPrevious)
