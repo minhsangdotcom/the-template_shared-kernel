@@ -1,6 +1,6 @@
 namespace SharedKernel.Exceptions;
 
-internal class NotFoundException : CustomException
+public class NotFoundException : CustomException
 {
     public NotFoundException(string key, string objectName)
         : base($"Queried object {objectName} was not found, Key: {key}") { }
