@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using SharedKernel.Extensions.Expressions;
 
 namespace SharedKernel.Common.Messages;
 
@@ -11,7 +10,7 @@ public static class Messenger
     public static Message<T> Property<T>(this Message<T> message, Expression<Func<T, object>> prop)
         where T : class
     {
-        message.PropertyName = prop.ToStringProperty();
+        message.PropertyName = prop.ToPropertyString();
         return message;
     }
 
@@ -109,4 +108,23 @@ public static class Messenger
     /// <returns></returns>
     public static MessageResult Build<T>(this Message<T> message)
         where T : class => message.BuildMessage();
+
+    public static string ToPropertyString<T>(this Expression<Func<T, object>> expression)
+    {
+        if (expression == null)
+            throw new ArgumentNullException(nameof(expression));
+
+        Expression body = expression.Body;
+        if (body is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
+            body = unary.Operand;
+
+        var members = new Stack<string>();
+        while (body is MemberExpression member)
+        {
+            members.Push(member.Member.Name);
+            body = member.Expression!;
+        }
+
+        return string.Join(".", members);
+    }
 }

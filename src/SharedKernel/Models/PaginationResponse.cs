@@ -4,9 +4,15 @@ namespace SharedKernel.Models;
 
 public class PaginationResponse<T>
 {
-    public IEnumerable<T>? Data { get; private set; }
+    public IEnumerable<T>? Data { get; init; }
 
-    public Paging<T>? Paging { get; private set; }
+    public Paging<T>? Paging { get; init; }
+
+    public PaginationResponse(IEnumerable<T> data, Paging<T> paging)
+    {
+        Data = data;
+        Paging = paging;
+    }
 
     public PaginationResponse(
         IEnumerable<T> data,
@@ -72,5 +78,24 @@ public class Paging<T>
         HasNextPage = nextCursor != null;
         Before = previousCursor;
         HasPreviousPage = previousCursor != null;
+    }
+
+    public Paging(
+        int? currentPage,
+        int pageSize,
+        int totalPage,
+        bool? hasNext,
+        bool? hasPrevious,
+        string? before = null,
+        string? after = null
+    )
+    {
+        CurrentPage = currentPage;
+        PageSize = pageSize;
+        TotalPage = totalPage;
+        HasNextPage = hasNext;
+        HasPreviousPage = hasPrevious;
+        Before = before;
+        After = after;
     }
 }

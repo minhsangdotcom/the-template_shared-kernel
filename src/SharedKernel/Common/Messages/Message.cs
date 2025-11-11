@@ -1,6 +1,5 @@
 using System.Xml.Linq;
 using CaseConverter;
-using SharedKernel.Extensions;
 
 namespace SharedKernel.Common.Messages;
 
