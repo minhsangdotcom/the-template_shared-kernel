@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using CaseConverter;
 using SharedKernel.Extensions;
 
@@ -117,7 +118,7 @@ public class Message<T>(string? entityName = null)
             _ => string.Empty,
         };
 
-        Dictionary<string, ResourceResult> translator = ResourceExtension.ReadResxFile(path) ?? [];
+        Dictionary<string, ResourceResult> translator = ReadResxFile(path) ?? [];
 
         ResourceResult? propertyTranslation = translator!.GetValueOrDefault(PropertyName);
         string property = propertyTranslation?.Value ?? string.Empty;
@@ -242,7 +243,34 @@ public class Message<T>(string? entityName = null)
             new[] { localeNegativeWord, message }.Where(item => !string.IsNullOrEmpty(item))
         );
     }
+
+    public static Dictionary<string, ResourceResult> ReadResxFile(string filePath)
+    {
+        try
+        {
+            XDocument resxDoc = XDocument.Load(filePath);
+            Dictionary<string, ResourceResult> dataElements = resxDoc
+                .Root!.Elements("data")
+                .Select(elem => new KeyValuePair<string, ResourceResult>(
+                    elem.Attribute("name")?.Value!,
+                    new ResourceResult(
+                        elem.Attribute("name")?.Value!,
+                        elem.Element("value")?.Value!,
+                        elem.Element("comment")?.Value
+                    )
+                ))
+                .ToDictionary();
+
+            return dataElements;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error reading the resx file: {ex.Message}");
+        }
+    }
 }
+
+public record ResourceResult(string Key, string Value, string? Comment);
 
 public record CustomMessage(
     string Message,

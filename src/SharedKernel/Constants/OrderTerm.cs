@@ -1,4 +1,4 @@
-namespace SharedKernel.Models;
+namespace SharedKernel.Constants;
 
 public static class OrderTerm
 {
