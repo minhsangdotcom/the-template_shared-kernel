@@ -111,8 +111,7 @@ public static class Messenger
 
     public static string ToPropertyString<T>(this Expression<Func<T, object>> expression)
     {
-        if (expression == null)
-            throw new ArgumentNullException(nameof(expression));
+        ArgumentNullException.ThrowIfNull(expression);
 
         Expression body = expression.Body;
         if (body is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
