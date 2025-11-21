@@ -9,13 +9,13 @@
     <Version>1.0.14</Version>
     <Authors>Tran Minh Sang</Authors>
     <Company>minhsangdotcom</Company>
-    <PackageTags>csharp, nuget, clean architecture, code base</PackageTags>
+    <PackageTags>csharp, nuget, clean architecture, code base, DDD</PackageTags>
     <RepositoryUrl>https://github.com/minhsangdotcom/the-template_shared-kernel</RepositoryUrl>
     <PackageReadmeFile>README-NUGET.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CaseConverter" Version="2.0.1" />
+    <PackageReference Include="Mediator.Abstractions" Version="3.0.1" />
     <PackageReference Include="Ulid" Version="1.4.1" />
     <None Include="../../README-NUGET.md" Pack="true" PackagePath="" />
   </ItemGroup>

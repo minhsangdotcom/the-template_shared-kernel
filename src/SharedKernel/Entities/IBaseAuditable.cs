@@ -1,4 +1,4 @@
-namespace SharedKernel.Models;
+namespace SharedKernel.Entities;
 
 public interface IBaseAuditable
 {

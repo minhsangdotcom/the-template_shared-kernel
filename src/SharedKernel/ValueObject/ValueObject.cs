@@ -1,4 +1,4 @@
-namespace SharedKernel.Common;
+namespace SharedKernel.ValueObject;
 
 [Serializable]
 public abstract class ValueObject : IComparable, IComparable<ValueObject>
