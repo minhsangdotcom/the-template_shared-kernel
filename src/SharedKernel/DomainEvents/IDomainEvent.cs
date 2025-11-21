@@ -1,5 +1,5 @@
 using Mediator;
 
-namespace SharedKernel.Entities;
+namespace SharedKernel.DomainEvents;
 
 public interface IDomainEvent : INotification;
