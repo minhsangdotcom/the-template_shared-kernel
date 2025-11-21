@@ -1,7 +1,24 @@
-# the-template_shared-kernel
+# SharedKernel for Clean Architecture (by Sang Minh)
 
-This is the abstraction stuffs for [Clean Architecture The Template](https://github.com/minhsangdotcom/Clean-Architecture_The-Template).
+A lightweight, production-ready **Shared Kernel** package designed for Domain-Driven Design (DDD) and Clean Architecture–based .NET projects.
 
-Check it out at [Nuget](https://www.nuget.org/packages/minhsangdotcom.TheTemplate.SharedKernel)
+This package provides **domain abstractions** used across bounded contexts, helping you build consistent and maintainable enterprise solutions.
 
-Hope u enjoy it :rocket:
+---
+
+## :rocket: Features
+
+### ✔ Domain Abstractions
+- Base **Entity** & **Aggregate Root**
+- **Value Objects**
+- **Domain Events** & base classes
+- **Auditing Interfaces**
+- **Soft-delete Interfaces**
+- **Multi-tenant Interfaces**
+- Common domain constants
+
+## 📦 Installation
+
+```bash
+dotnet add package minhsangdotcom.TheTemplate.SharedKernel
+```
