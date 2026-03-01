@@ -1,10 +1,8 @@
-# SharedKernel for Clean Architecture (by Sang Minh)
+# SharedKernel for DDD
 
 A lightweight, production-ready **Shared Kernel** package designed for Domain-Driven Design (DDD) and Clean Architecture–based .NET projects.
 
 This package provides **domain abstractions** used across bounded contexts, helping you build consistent and maintainable enterprise solutions.
-
----
 
 ## :rocket: Features
 
