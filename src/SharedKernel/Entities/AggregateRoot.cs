@@ -4,11 +4,6 @@ using SharedKernel.DomainEvents;
 
 namespace SharedKernel.Entities;
 
-public abstract class AggregateRoot : AggregateRoot<Ulid>
-{
-    public override Ulid Id { get; protected set; } = Ulid.NewUlid();
-}
-
 public abstract class AggregateRoot<T> : Entity<T>, IAuditable
 {
     public long Version { get; set; }

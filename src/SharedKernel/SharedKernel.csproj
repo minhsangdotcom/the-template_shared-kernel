@@ -15,7 +15,6 @@
 
   <ItemGroup>
     <PackageReference Include="Mediator.Abstractions" Version="3.0.1" />
-    <PackageReference Include="Ulid" Version="1.4.1" />
     <None Include="../../README-NUGET.md" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>
